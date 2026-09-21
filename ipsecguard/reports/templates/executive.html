@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>IPsecGuard AI Executive Report</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 2rem; color: #1f2937; }
+      .score { font-size: 3rem; font-weight: bold; color: #dc2626; }
+      .chip { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; margin-right: 0.25rem; }
+      .observed { background: #dbeafe; color: #1d4ed8; }
+      .inferred { background: #fef3c7; color: #b45309; }
+    </style>
+  </head>
+  <body>
+    <h1>Executive Assessment</h1>
+    <p>IPsecGuard AI analyzed the uploaded capture without decrypting payloads.</p>
+    <div class="score">{{ result.score }}/100</div>
+    <h2>Top risks</h2>
+    <ol>
+      {% for finding in findings[:3] %}
+      <li>
+        <span class="chip {{ finding.derivation }}">{{ finding.derivation|capitalize }}</span>
+        {{ finding.title }} — {{ finding.description }}
+      </li>
+      {% endfor %}
+    </ol>
+    <h2>Subscores</h2>
+    <ul>
+      {% for key, value in result.subscores.items() %}
+      <li>{{ key.replace('_', ' ')|title }}: {{ value }}/100</li>
+      {% endfor %}
+    </ul>
+  </body>
+</html>

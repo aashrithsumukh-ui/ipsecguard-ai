@@ -1,0 +1,31 @@
+services:
+  vpn-left:
+    image: strongswan/strongswan:latest
+    cap_add:
+      - NET_ADMIN
+    privileged: true
+    volumes:
+      - ./configs/left:/etc/swanctl/conf.d
+    command: ["/bin/sh", "-c", "sleep infinity"]
+    networks:
+      ipsecnet:
+        ipv4_address: 172.28.0.2
+
+  vpn-right:
+    image: strongswan/strongswan:latest
+    cap_add:
+      - NET_ADMIN
+    privileged: true
+    volumes:
+      - ./configs/right:/etc/swanctl/conf.d
+    command: ["/bin/sh", "-c", "sleep infinity"]
+    networks:
+      ipsecnet:
+        ipv4_address: 172.28.0.3
+
+networks:
+  ipsecnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
