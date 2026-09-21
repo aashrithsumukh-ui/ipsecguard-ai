@@ -1,0 +1,59 @@
+{
+  "accuracy": 0.9,
+  "macro_f1": 0.8933,
+  "evaluation": "held-out config split via GroupShuffleSplit",
+  "train_size": 20,
+  "test_size": 10,
+  "config_groups": [
+    "3DES|14|tunnel|3des-family",
+    "3DES|2|transport|3des-family",
+    "AES-CBC|14|tunnel|aes-cbc-family",
+    "AES-CBC|20|transport|aes-cbc-family",
+    "AES-GCM-16|19|tunnel|aes-gcm-family",
+    "AES-GCM-16|20|tunnel|aes-gcm-family"
+  ],
+  "labels": [
+    "bulk",
+    "icmp",
+    "mixed",
+    "voip",
+    "web"
+  ],
+  "confusion_matrix": [
+    [
+      2,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      2,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      2,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      2
+    ]
+  ]
+}

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from ipsecguard.constants import RFC_CITATIONS
 from ipsecguard.models import Finding
 
 LIKELIHOOD_ORDER = {"low": 0, "medium": 1, "high": 2}
@@ -62,8 +61,6 @@ def score_findings(findings: list[Finding]) -> tuple[int, dict[str, int], dict[s
     for finding in findings:
         for key, value in _deductions_for_finding(finding).items():
             deductions[key] += value
-    subscores = {
-        key: max(0, SUBSCORE_BASE[key] - deductions[key]) for key in SUBSCORE_BASE
-    }
+    subscores = {key: max(0, SUBSCORE_BASE[key] - deductions[key]) for key in SUBSCORE_BASE}
     score = round(sum(subscores.values()) / len(subscores))
     return score, subscores, build_threat_matrix(findings)

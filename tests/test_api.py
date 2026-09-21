@@ -11,7 +11,9 @@ SAMPLE_PCAP = BASE_DIR / "samples" / "cfg0_icmp_transport_3des-family_3des_dh2_p
 def test_analyze_smoke():
     client = TestClient(app)
     with SAMPLE_PCAP.open("rb") as handle:
-        response = client.post("/analyze", files={"file": (SAMPLE_PCAP.name, handle, "application/vnd.tcpdump.pcap")})
+        response = client.post(
+            "/analyze", files={"file": (SAMPLE_PCAP.name, handle, "application/vnd.tcpdump.pcap")}
+        )
     assert response.status_code == 200
     body = response.json()
     assert "score" in body

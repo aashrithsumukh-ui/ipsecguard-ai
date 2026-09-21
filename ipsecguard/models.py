@@ -4,6 +4,19 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    if hasattr(value, "item"):
+        try:
+            return value.item()
+        except Exception:
+            return value
+    return value
+
+
 @dataclass(slots=True)
 class Finding:
     title: str
@@ -20,7 +33,7 @@ class Finding:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        payload = asdict(self)
+        payload = _json_safe(asdict(self))
         if self.confidence is not None:
             payload["confidence_pct"] = round(self.confidence * 100, 1)
         return payload
@@ -38,18 +51,23 @@ class AnalysisResult:
     subscores: dict[str, int]
     findings: list[Finding]
     threat_matrix: dict[str, list[dict[str, Any]]]
-    reports: AnalysisArtifacts
+    reports: AnalysisArtifacts | None
     session_summary: dict[str, Any]
 
     def to_dict(self) -> dict[str, Any]:
+        report_ids = (
+            {
+                "executive": self.reports.executive_report_id,
+                "technical": self.reports.technical_report_id,
+            }
+            if self.reports is not None
+            else {}
+        )
         return {
             "score": self.score,
             "subscores": self.subscores,
             "findings": [finding.to_dict() for finding in self.findings],
             "threat_matrix": self.threat_matrix,
-            "report_ids": {
-                "executive": self.reports.executive_report_id,
-                "technical": self.reports.technical_report_id,
-            },
-            "session_summary": self.session_summary,
+            "report_ids": report_ids,
+            "session_summary": _json_safe(self.session_summary),
         }

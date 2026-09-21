@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import joblib
 import pandas as pd
 from sklearn.ensemble import IsolationForest
@@ -41,7 +39,11 @@ def train_anomaly_model(features: pd.DataFrame) -> IsolationForest:
 def load_or_create_model(features: pd.DataFrame | None = None) -> IsolationForest:
     if MODEL_PATH.exists():
         return joblib.load(MODEL_PATH)
-    baseline = features if features is not None and not features.empty else pd.DataFrame([{column: 0.0 for column in FEATURE_COLUMNS}])
+    baseline = (
+        features
+        if features is not None and not features.empty
+        else pd.DataFrame([{column: 0.0 for column in FEATURE_COLUMNS}])
+    )
     return train_anomaly_model(baseline)
 
 

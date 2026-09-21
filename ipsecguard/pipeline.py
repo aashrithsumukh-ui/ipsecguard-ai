@@ -40,7 +40,7 @@ def analyze_capture(pcap_path: str | Path) -> AnalysisResult:
         inferred_findings.append(infer_mode(primary))
         inferred_findings.append(infer_cipher_family(primary))
         anomaly_model = load_or_create_model(features)
-        anomaly_score = score_anomaly(anomaly_model, features)
+        anomaly_score = float(score_anomaly(anomaly_model, features))
         inferred_findings.append(anomaly_to_finding(anomaly_score))
         session_summary["anomaly_score"] = anomaly_score
         if MODEL_PATH.exists():
@@ -50,7 +50,9 @@ def analyze_capture(pcap_path: str | Path) -> AnalysisResult:
             inferred_findings.append(_traffic_finding(traffic_label, confidence, shap_values))
             session_summary["traffic_label"] = traffic_label
     findings = observed_findings + inferred_findings
-    findings.sort(key=lambda finding: {"high": 0, "medium": 1, "low": 2, "info": 3}.get(finding.severity, 4))
+    findings.sort(
+        key=lambda finding: {"high": 0, "medium": 1, "low": 2, "info": 3}.get(finding.severity, 4)
+    )
     score, subscores, threat_matrix = score_findings(findings)
     placeholder = AnalysisResult(
         score=score,

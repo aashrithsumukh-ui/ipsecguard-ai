@@ -18,7 +18,9 @@ def build_training_frame() -> pd.DataFrame:
             continue
         row = features.iloc[0].to_dict()
         row.update(item)
-        row["config_group"] = f"{item['ike_enc']}|{item['dh_group']}|{item['mode']}|{item['esp_cipher']}"
+        row["config_group"] = (
+            f"{item['ike_enc']}|{item['dh_group']}|{item['mode']}|{item['esp_cipher']}"
+        )
         rows.append(row)
     frame = pd.DataFrame(rows)
     return frame

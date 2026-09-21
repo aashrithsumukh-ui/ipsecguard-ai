@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, String, Text, create_engine, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
@@ -23,7 +23,9 @@ class AnalysisRecord(Base):
     kind: Mapped[str] = mapped_column(String(32))
     path: Mapped[str] = mapped_column(Text())
     payload_json: Mapped[str] = mapped_column(Text())
-    created_at: Mapped[datetime] = mapped_column(DateTime(), default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(), default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
 
 
 class AnalysisRepository:

@@ -26,7 +26,9 @@ def top_contributions(model: Any, features: pd.DataFrame) -> list[dict[str, floa
             else:
                 array = np.array(values[0])
             pairs = sorted(
-                zip(FEATURE_COLUMNS, array, strict=False), key=lambda item: abs(float(item[1])), reverse=True
+                zip(FEATURE_COLUMNS, array, strict=False),
+                key=lambda item: abs(float(item[1])),
+                reverse=True,
             )[:5]
             return [{"feature": name, "impact": round(float(value), 4)} for name, value in pairs]
         except Exception:

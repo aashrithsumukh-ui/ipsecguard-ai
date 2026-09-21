@@ -127,7 +127,11 @@ def _parse_ikev1_transforms(payload: bytes) -> list[dict[str, str]]:
             )[0]
             if transform_length < 8:
                 break
-            attrs.update(_parse_ikev1_attributes(proposal[transform_cursor: transform_cursor + transform_length]))
+            attrs.update(
+                _parse_ikev1_attributes(
+                    proposal[transform_cursor : transform_cursor + transform_length]
+                )
+            )
             transform_cursor += transform_length
         if attrs:
             results.append(attrs)
@@ -177,7 +181,11 @@ def extract_findings(pcap_path: str | Path) -> tuple[list[Finding], dict[str, An
         for packet in reader:
             if IP in packet and packet[IP].proto == 50:
                 summary["has_esp"] = True
-            if UDP not in packet or packet[UDP].sport not in {500, 4500} and packet[UDP].dport not in {500, 4500}:
+            if (
+                UDP not in packet
+                or packet[UDP].sport not in {500, 4500}
+                and packet[UDP].dport not in {500, 4500}
+            ):
                 continue
             payload = _payload_bytes(packet)
             if len(payload) < 28:
@@ -189,9 +197,15 @@ def extract_findings(pcap_path: str | Path) -> tuple[list[Finding], dict[str, An
             summary["ike_versions"].append(version)
             citation = RFC_CITATIONS["ikev2"] if version.startswith("2") else RFC_CITATIONS["ikev1"]
             if ("ike_version", version) not in seen_fields:
-                findings.append(_observed_finding("IKE version observed", "ike_version", version, citation))
+                findings.append(
+                    _observed_finding("IKE version observed", "ike_version", version, citation)
+                )
                 seen_fields.add(("ike_version", version))
-            if version.startswith("2") and exchange_type == IKEV2_SA_INIT and next_payload == SA_PAYLOAD:
+            if (
+                version.startswith("2")
+                and exchange_type == IKEV2_SA_INIT
+                and next_payload == SA_PAYLOAD
+            ):
                 for proposal in _parse_ikev2_transforms(payload[28:]):
                     for source_field, raw_value in proposal.items():
                         key = (source_field, raw_value)
@@ -206,7 +220,11 @@ def extract_findings(pcap_path: str | Path) -> tuple[list[Finding], dict[str, An
                             )
                         )
                         seen_fields.add(key)
-                if packet[UDP].sport == 500 and packet[UDP].dport == 500 and packet[IP].src.endswith(".2"):
+                if (
+                    packet[UDP].sport == 500
+                    and packet[UDP].dport == 500
+                    and packet[IP].src.endswith(".2")
+                ):
                     findings.append(
                         Finding(
                             title="Responder proposal observed",
@@ -229,7 +247,9 @@ def extract_findings(pcap_path: str | Path) -> tuple[list[Finding], dict[str, An
                             severity="high",
                             category="metadata_exposure",
                             derivation="observed",
-                            description="IKEv1 aggressive mode leaks identity information in cleartext.",
+                            description=(
+                                "IKEv1 aggressive mode leaks identity information in cleartext."
+                            ),
                             source_field="ikev1.exchange_type",
                             raw_value="aggressive-mode",
                             citation=RFC_CITATIONS["ikev1"],
@@ -260,7 +280,10 @@ def extract_findings(pcap_path: str | Path) -> tuple[list[Finding], dict[str, An
                 severity="medium",
                 category="coverage",
                 derivation="observed",
-                description="ESP packets were present, but the capture does not include a plaintext IKE handshake.",
+                description=(
+                    "ESP packets were present, but the capture does not include "
+                    "a plaintext IKE handshake."
+                ),
                 source_field="capture.coverage",
                 raw_value="esp_without_ike",
                 citation="Capture observation",

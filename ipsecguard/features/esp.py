@@ -45,7 +45,9 @@ def extract_flow_features(pcap_path: str | Path) -> pd.DataFrame:
     for (spi, src, dst), packets in flows.items():
         sizes = [entry["size"] for entry in packets]
         timestamps = [entry["timestamp"] for entry in packets]
-        iats = [max(timestamps[idx] - timestamps[idx - 1], 0.0) for idx in range(1, len(timestamps))]
+        iats = [
+            max(timestamps[idx] - timestamps[idx - 1], 0.0) for idx in range(1, len(timestamps))
+        ]
         size_mean = mean(sizes) if sizes else 0.0
         size_std = pstdev(sizes) if len(sizes) > 1 else 0.0
         iat_mean = mean(iats) if iats else 0.0
@@ -71,7 +73,9 @@ def extract_flow_features(pcap_path: str | Path) -> pd.DataFrame:
                 "src": src,
                 "dst": dst,
                 "packet_count": len(sizes),
-                "duration": max(timestamps[-1] - timestamps[0], 0.0) if len(timestamps) > 1 else 0.0,
+                "duration": max(timestamps[-1] - timestamps[0], 0.0)
+                if len(timestamps) > 1
+                else 0.0,
                 "size_mean": size_mean,
                 "size_std": size_std,
                 "size_p10": _percentile(sizes, 0.10),

@@ -21,18 +21,76 @@ TRAFFIC_PROFILES = {
 }
 
 CONFIGS = [
-    {"ike_enc": "3DES", "ike_integ": "HMAC-MD5-96", "ike_prf": "HMAC-MD5", "dh_group": 2, "pfs": "off", "mode": "transport", "esp_cipher": "3des-family"},
-    {"ike_enc": "AES-CBC", "ike_integ": "HMAC-SHA1-96", "ike_prf": "HMAC-SHA1", "dh_group": 14, "pfs": "off", "mode": "tunnel", "esp_cipher": "aes-cbc-family"},
-    {"ike_enc": "AES-GCM-16", "ike_integ": "SHA2-256-128", "ike_prf": "HMAC-SHA2-256", "dh_group": 19, "pfs": "on", "mode": "tunnel", "esp_cipher": "aes-gcm-family"},
-    {"ike_enc": "AES-CBC", "ike_integ": "SHA2-256-128", "ike_prf": "HMAC-SHA2-256", "dh_group": 20, "pfs": "on", "mode": "transport", "esp_cipher": "aes-cbc-family"},
-    {"ike_enc": "AES-GCM-16", "ike_integ": "SHA2-384-192", "ike_prf": "HMAC-SHA2-384", "dh_group": 20, "pfs": "off", "mode": "tunnel", "esp_cipher": "aes-gcm-family"},
-    {"ike_enc": "3DES", "ike_integ": "HMAC-SHA1-96", "ike_prf": "HMAC-SHA1", "dh_group": 14, "pfs": "off", "mode": "tunnel", "esp_cipher": "3des-family"},
+    {
+        "ike_enc": "3DES",
+        "ike_integ": "HMAC-MD5-96",
+        "ike_prf": "HMAC-MD5",
+        "dh_group": 2,
+        "pfs": "off",
+        "mode": "transport",
+        "esp_cipher": "3des-family",
+    },
+    {
+        "ike_enc": "AES-CBC",
+        "ike_integ": "HMAC-SHA1-96",
+        "ike_prf": "HMAC-SHA1",
+        "dh_group": 14,
+        "pfs": "off",
+        "mode": "tunnel",
+        "esp_cipher": "aes-cbc-family",
+    },
+    {
+        "ike_enc": "AES-GCM-16",
+        "ike_integ": "SHA2-256-128",
+        "ike_prf": "HMAC-SHA2-256",
+        "dh_group": 19,
+        "pfs": "on",
+        "mode": "tunnel",
+        "esp_cipher": "aes-gcm-family",
+    },
+    {
+        "ike_enc": "AES-CBC",
+        "ike_integ": "SHA2-256-128",
+        "ike_prf": "HMAC-SHA2-256",
+        "dh_group": 20,
+        "pfs": "on",
+        "mode": "transport",
+        "esp_cipher": "aes-cbc-family",
+    },
+    {
+        "ike_enc": "AES-GCM-16",
+        "ike_integ": "SHA2-384-192",
+        "ike_prf": "HMAC-SHA2-384",
+        "dh_group": 20,
+        "pfs": "off",
+        "mode": "tunnel",
+        "esp_cipher": "aes-gcm-family",
+    },
+    {
+        "ike_enc": "3DES",
+        "ike_integ": "HMAC-SHA1-96",
+        "ike_prf": "HMAC-SHA1",
+        "dh_group": 14,
+        "pfs": "off",
+        "mode": "tunnel",
+        "esp_cipher": "3des-family",
+    },
 ]
 
 IKEV2_TRANSFORMS = {
     "ike_enc": {"3DES": (1, 3), "AES-CBC": (1, 12), "AES-GCM-16": (1, 18)},
-    "ike_prf": {"HMAC-MD5": (2, 1), "HMAC-SHA1": (2, 2), "HMAC-SHA2-256": (2, 5), "HMAC-SHA2-384": (2, 6)},
-    "ike_integ": {"HMAC-MD5-96": (3, 1), "HMAC-SHA1-96": (3, 2), "SHA2-256-128": (3, 12), "SHA2-384-192": (3, 13)},
+    "ike_prf": {
+        "HMAC-MD5": (2, 1),
+        "HMAC-SHA1": (2, 2),
+        "HMAC-SHA2-256": (2, 5),
+        "HMAC-SHA2-384": (2, 6),
+    },
+    "ike_integ": {
+        "HMAC-MD5-96": (3, 1),
+        "HMAC-SHA1-96": (3, 2),
+        "SHA2-256-128": (3, 12),
+        "SHA2-384-192": (3, 13),
+    },
 }
 
 
@@ -50,18 +108,37 @@ def build_ikev2_payload(config: dict, initiator: bytes, responder: bytes) -> byt
             struct.pack("!BBHBBH", next_payload, 0, 8, transform_type, 0, transform_id)
         )
     proposal_body = b"".join(transform_blobs)
-    proposal = struct.pack("!BBHBBBB", 0, 0, 8 + len(proposal_body), 1, 1, 0, len(transforms)) + proposal_body
+    proposal = (
+        struct.pack("!BBHBBBB", 0, 0, 8 + len(proposal_body), 1, 1, 0, len(transforms))
+        + proposal_body
+    )
     sa_payload = struct.pack("!BBH", 0, 0, 4 + len(proposal)) + proposal
-    header = initiator + responder + bytes([33, 0x20, 34, 0x08]) + struct.pack("!II", 0, 28 + len(sa_payload))
+    header = (
+        initiator
+        + responder
+        + bytes([33, 0x20, 34, 0x08])
+        + struct.pack("!II", 0, 28 + len(sa_payload))
+    )
     return header + sa_payload
 
 
 def build_ikev1_aggressive_payload() -> bytes:
-    transform_attrs = struct.pack("!HH", 0x8001, 3) + struct.pack("!HH", 0x8002, 1) + struct.pack("!HH", 0x8004, 2)
-    transform = struct.pack("!BBHBBBB", 0, 0, 8 + len(transform_attrs), 1, 0, 0, 0) + transform_attrs
+    transform_attrs = (
+        struct.pack("!HH", 0x8001, 3)
+        + struct.pack("!HH", 0x8002, 1)
+        + struct.pack("!HH", 0x8004, 2)
+    )
+    transform = (
+        struct.pack("!BBHBBBB", 0, 0, 8 + len(transform_attrs), 1, 0, 0, 0) + transform_attrs
+    )
     proposal = struct.pack("!BBHBBBB", 0, 0, 8 + len(transform), 1, 1, 0, 1) + transform
     sa_payload = struct.pack("!BBH", 0, 0, 4 + 4 + len(proposal)) + struct.pack("!I", 1) + proposal
-    header = b"\x10" * 8 + b"\x20" * 8 + bytes([1, 0x10, 4, 0x08]) + struct.pack("!II", 0, 28 + len(sa_payload))
+    header = (
+        b"\x10" * 8
+        + b"\x20" * 8
+        + bytes([1, 0x10, 4, 0x08])
+        + struct.pack("!II", 0, 28 + len(sa_payload))
+    )
     return header + sa_payload
 
 
@@ -79,16 +156,22 @@ def esp_payload_size(traffic_label: str, mode: str, cipher_family: str, rng: ran
     return max(base, 96)
 
 
-def build_session_packets(config: dict, traffic_label: str, latency_ms: int, jitter_ms: int, loss_pct: int, seed: int):
+def build_session_packets(
+    config: dict, traffic_label: str, latency_ms: int, jitter_ms: int, loss_pct: int, seed: int
+):
     rng = random.Random(seed)
     packets = []
     initiator = b"\xaa" * 8
     responder = b"\xbb" * 8
-    ike_request = IP(src="10.0.0.1", dst="10.0.0.2") / UDP(sport=500, dport=500) / Raw(
-        build_ikev2_payload(config, initiator, b"\x00" * 8)
+    ike_request = (
+        IP(src="10.0.0.1", dst="10.0.0.2")
+        / UDP(sport=500, dport=500)
+        / Raw(build_ikev2_payload(config, initiator, b"\x00" * 8))
     )
-    ike_response = IP(src="10.0.0.2", dst="10.0.0.1") / UDP(sport=500, dport=500) / Raw(
-        build_ikev2_payload(config, initiator, responder)
+    ike_response = (
+        IP(src="10.0.0.2", dst="10.0.0.1")
+        / UDP(sport=500, dport=500)
+        / Raw(build_ikev2_payload(config, initiator, responder))
     )
     ike_request.time = 0.0
     ike_response.time = 0.05
@@ -123,10 +206,13 @@ def write_dataset() -> None:
             jitter_ms = 1 + (traffic_index % 3) * 2
             loss_pct = (config_index + traffic_index) % 4
             seed = config_index * 100 + traffic_index
-            packets = build_session_packets(config, traffic_label, latency_ms, jitter_ms, loss_pct, seed)
+            packets = build_session_packets(
+                config, traffic_label, latency_ms, jitter_ms, loss_pct, seed
+            )
             filename = (
                 f"cfg{config_index}_{traffic_label}_{config['mode']}_{config['esp_cipher']}_"
-                f"{config['ike_enc'].lower().replace('-', '')}_dh{config['dh_group']}_pfs{config['pfs']}.pcap"
+                f"{config['ike_enc'].lower().replace('-', '')}_"
+                f"dh{config['dh_group']}_pfs{config['pfs']}.pcap"
             )
             wrpcap(str(SYNTH_DIR / filename), packets)
             rows.append(
@@ -150,7 +236,11 @@ def write_dataset() -> None:
                 sample_counter += 1
     for aggressive_index in range(2):
         filename = f"ikev1_aggressive_{aggressive_index + 1}.pcap"
-        packet = IP(src="10.1.0.1", dst="10.1.0.2") / UDP(sport=500, dport=500) / Raw(build_ikev1_aggressive_payload())
+        packet = (
+            IP(src="10.1.0.1", dst="10.1.0.2")
+            / UDP(sport=500, dport=500)
+            / Raw(build_ikev1_aggressive_payload())
+        )
         packet.time = 0.0
         wrpcap(str(SYNTH_DIR / filename), [packet])
         rows.append(

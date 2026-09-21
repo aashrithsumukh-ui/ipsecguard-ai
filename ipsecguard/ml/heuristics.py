@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import math
-
 from ipsecguard.models import Finding
 
 
@@ -45,7 +43,9 @@ def infer_cipher_family(feature_row: dict) -> Finding:
         severity="medium",
         category="crypto_strength",
         derivation="inferred",
-        description="ESP cipher family inferred from payload-length alignment and IV/padding patterns.",
+        description=(
+            "ESP cipher family inferred from payload-length alignment and IV/padding patterns."
+        ),
         source_field="esp.length_alignment",
         raw_value=family,
         confidence=confidence,

@@ -33,12 +33,26 @@ async def analyze(file: UploadFile = File(...)) -> dict:
     with NamedTemporaryFile(suffix=".pcap", delete=False) as handle:
         handle.write(await file.read())
         temp_path = Path(handle.name)
-    result = analyze_capture(temp_path)
-    executive_html = REPORTS_DIR / f"{result.reports.executive_report_id}-executive.html"
-    technical_html = REPORTS_DIR / f"{result.reports.technical_report_id}-technical.html"
-    repository.save_report(result.reports.executive_report_id, "executive", str(executive_html), result.to_dict())
-    repository.save_report(result.reports.technical_report_id, "technical", str(technical_html), result.to_dict())
-    return result.to_dict()
+    try:
+        result = analyze_capture(temp_path)
+        executive_html = REPORTS_DIR / f"{result.reports.executive_report_id}-executive.html"
+        technical_html = REPORTS_DIR / f"{result.reports.technical_report_id}-technical.html"
+        payload = result.to_dict()
+        repository.save_report(
+            result.reports.executive_report_id,
+            "executive",
+            str(executive_html),
+            payload,
+        )
+        repository.save_report(
+            result.reports.technical_report_id,
+            "technical",
+            str(technical_html),
+            payload,
+        )
+        return payload
+    finally:
+        temp_path.unlink(missing_ok=True)
 
 
 @app.get("/reports/{report_id}/{kind}")
