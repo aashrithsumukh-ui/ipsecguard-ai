@@ -5,12 +5,12 @@
   "train_size": 20,
   "test_size": 10,
   "config_groups": [
-    "3DES|14|tunnel|3des-family",
-    "3DES|2|transport|3des-family",
-    "AES-CBC|14|tunnel|aes-cbc-family",
-    "AES-CBC|20|transport|aes-cbc-family",
-    "AES-GCM-16|19|tunnel|aes-gcm-family",
-    "AES-GCM-16|20|tunnel|aes-gcm-family"
+    "3DES|HMAC-MD5-96|2|off|transport|3des-family",
+    "3DES|HMAC-SHA1-96|14|off|tunnel|3des-family",
+    "AES-CBC|HMAC-SHA1-96|14|off|tunnel|aes-cbc-family",
+    "AES-CBC|SHA2-256-128|20|on|transport|aes-cbc-family",
+    "AES-GCM-16|SHA2-256-128|19|on|tunnel|aes-gcm-family",
+    "AES-GCM-16|SHA2-384-192|20|off|tunnel|aes-gcm-family"
   ],
   "labels": [
     "bulk",

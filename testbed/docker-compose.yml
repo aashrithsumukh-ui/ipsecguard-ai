@@ -1,6 +1,6 @@
 services:
   vpn-left:
-    image: strongswan/strongswan:latest
+    image: strongswan/strongswan:6.0.0
     cap_add:
       - NET_ADMIN
     privileged: true
@@ -12,7 +12,7 @@ services:
         ipv4_address: 172.28.0.2
 
   vpn-right:
-    image: strongswan/strongswan:latest
+    image: strongswan/strongswan:6.0.0
     cap_add:
       - NET_ADMIN
     privileged: true

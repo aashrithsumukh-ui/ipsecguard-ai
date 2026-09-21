@@ -6,7 +6,7 @@ from ipsecguard.features.esp import extract_flow_features
 from ipsecguard.ml.anomaly import load_or_create_model, score_anomaly
 from ipsecguard.ml.explain import top_contributions
 from ipsecguard.ml.heuristics import anomaly_to_finding, infer_cipher_family, infer_mode
-from ipsecguard.ml.traffic_classifier import MODEL_PATH, load_model, predict_traffic
+from ipsecguard.ml.traffic_classifier import LABELS_PATH, MODEL_PATH, load_model, predict_traffic
 from ipsecguard.models import AnalysisResult, Finding
 from ipsecguard.parser.ike import extract_findings
 from ipsecguard.reports.render import render_reports
@@ -36,17 +36,18 @@ def analyze_capture(pcap_path: str | Path) -> AnalysisResult:
     inferred_findings: list[Finding] = []
     session_summary = {**parser_summary, "flow_count": int(len(features))}
     if not features.empty:
-        primary = features.iloc[0].to_dict()
+        primary_features = features.iloc[[0]].copy()
+        primary = primary_features.iloc[0].to_dict()
         inferred_findings.append(infer_mode(primary))
         inferred_findings.append(infer_cipher_family(primary))
         anomaly_model = load_or_create_model(features)
-        anomaly_score = float(score_anomaly(anomaly_model, features))
+        anomaly_score = float(score_anomaly(anomaly_model, primary_features))
         inferred_findings.append(anomaly_to_finding(anomaly_score))
         session_summary["anomaly_score"] = anomaly_score
-        if MODEL_PATH.exists():
+        if MODEL_PATH.exists() and LABELS_PATH.exists():
             model = load_model()
-            traffic_label, confidence = predict_traffic(model, features)
-            shap_values = top_contributions(model, features)
+            traffic_label, confidence = predict_traffic(model, primary_features)
+            shap_values = top_contributions(model, primary_features)
             inferred_findings.append(_traffic_finding(traffic_label, confidence, shap_values))
             session_summary["traffic_label"] = traffic_label
     findings = observed_findings + inferred_findings

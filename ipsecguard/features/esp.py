@@ -23,7 +23,7 @@ def _percentile(values: list[float], quantile: float) -> float:
 
 
 def extract_flow_features(pcap_path: str | Path) -> pd.DataFrame:
-    flows: dict[tuple[int, str, str], list[dict[str, float]]] = defaultdict(list)
+    sessions: dict[tuple[str, str], list[dict[str, float | int | str]]] = defaultdict(list)
     with PcapReader(str(pcap_path)) as reader:
         for packet in reader:
             if IP not in packet or packet[IP].proto != 50:
@@ -32,22 +32,30 @@ def extract_flow_features(pcap_path: str | Path) -> pd.DataFrame:
             if len(payload) < 8:
                 continue
             spi = int.from_bytes(payload[:4], "big")
-            key = (spi, packet[IP].src, packet[IP].dst)
-            flows[key].append(
+            peers = tuple(sorted((packet[IP].src, packet[IP].dst)))
+            sessions[peers].append(
                 {
                     "timestamp": float(packet.time),
                     "size": float(len(bytes(packet[IP]))),
                     "src": packet[IP].src,
                     "dst": packet[IP].dst,
+                    "spi": spi,
                 }
             )
     rows: list[dict[str, float | str | int]] = []
-    for (spi, src, dst), packets in flows.items():
-        sizes = [entry["size"] for entry in packets]
-        timestamps = [entry["timestamp"] for entry in packets]
+    for peers, packets in sessions.items():
+        all_packets = sorted(packets, key=lambda entry: entry["timestamp"])
+        sizes = [entry["size"] for entry in all_packets]
+        timestamps = [entry["timestamp"] for entry in all_packets]
         iats = [
             max(timestamps[idx] - timestamps[idx - 1], 0.0) for idx in range(1, len(timestamps))
         ]
+        direction_totals: dict[str, float] = defaultdict(float)
+        for entry in all_packets:
+            direction_totals[str(entry["src"])] += float(entry["size"])
+        byte_totals = sorted(direction_totals.values(), reverse=True)
+        larger_direction = byte_totals[0] if byte_totals else 0.0
+        smaller_direction = byte_totals[1] if len(byte_totals) > 1 else 0.0
         size_mean = mean(sizes) if sizes else 0.0
         size_std = pstdev(sizes) if len(sizes) > 1 else 0.0
         iat_mean = mean(iats) if iats else 0.0
@@ -69,9 +77,9 @@ def extract_flow_features(pcap_path: str | Path) -> pd.DataFrame:
         overhead_consistency = 1.0 - min(size_std / max(size_mean, 1.0), 1.0)
         rows.append(
             {
-                "spi": spi,
-                "src": src,
-                "dst": dst,
+                "spi": int(all_packets[0]["spi"]) if all_packets else 0,
+                "src": peers[0],
+                "dst": peers[1],
                 "packet_count": len(sizes),
                 "duration": max(timestamps[-1] - timestamps[0], 0.0)
                 if len(timestamps) > 1
@@ -86,7 +94,7 @@ def extract_flow_features(pcap_path: str | Path) -> pd.DataFrame:
                 "iat_cv": iat_std / iat_mean if iat_mean else 0.0,
                 "burst_count": bursts,
                 "burst_mean_length": mean(burst_lengths) if burst_lengths else 0.0,
-                "byte_direction_ratio": 1.0,
+                "byte_direction_ratio": larger_direction / max(smaller_direction, 1.0),
                 "overhead_consistency": overhead_consistency,
                 "size_mod_4_ratio": size_mod_4,
                 "size_mod_8_ratio": size_mod_8,

@@ -21,10 +21,15 @@ def top_contributions(model: Any, features: pd.DataFrame) -> list[dict[str, floa
         try:
             explainer = shap.TreeExplainer(model)
             values = explainer.shap_values(row)
+            predicted_index = int(model.predict(row)[0])
             if isinstance(values, list):
-                array = np.array(values[0][0])
+                array = np.array(values[predicted_index][0])
             else:
-                array = np.array(values[0])
+                array = np.array(values)
+                if array.ndim == 3:
+                    array = array[0, :, predicted_index]
+                else:
+                    array = array[0]
             pairs = sorted(
                 zip(FEATURE_COLUMNS, array, strict=False),
                 key=lambda item: abs(float(item[1])),

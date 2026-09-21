@@ -25,12 +25,12 @@ def _deductions_for_finding(finding: Finding) -> dict[str, int]:
         deductions["key_management"] += 10
     if "SHA1" in text or "SHA-1" in text:
         deductions["crypto_strength"] += 15
-    if "DH-2" in text or "MODP-1024" in text:
+    if text.startswith("DH-2") or "MODP-1024" in text:
         deductions["key_management"] += 20
         deductions["forward_secrecy"] += 10
-    if "PFS disabled" in title or text == "off":
+    if "pfs disabled" in title or text == "off":
         deductions["forward_secrecy"] += 25
-    if "aggressive mode" in title:
+    if finding.raw_value == "aggressive-mode" or finding.source_field == "ikev1.exchange_type":
         deductions["metadata_exposure"] += 30
     if "NULL" in text:
         deductions["crypto_strength"] += 35

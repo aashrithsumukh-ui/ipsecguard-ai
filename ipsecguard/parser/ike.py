@@ -150,9 +150,9 @@ def _parse_ikev1_attributes(transform: bytes) -> dict[str, str]:
         if attr_type == 1:
             attrs["ike_enc"] = IKEV1_ENCR.get(value, f"ENCR-{value}")
         elif attr_type == 2:
-            attrs["hash_alg"] = IKEV1_HASH.get(value, f"HASH-{value}")
+            attrs["ike_integ"] = IKEV1_HASH.get(value, f"HASH-{value}")
         elif attr_type == 4:
-            attrs["dh_group"] = f"DH-{value}"
+            attrs["dh_group"] = IKEV2_DH.get(value, f"DH-{value}")
         cursor += 4
     return attrs
 
@@ -177,6 +177,7 @@ def extract_findings(pcap_path: str | Path) -> tuple[list[Finding], dict[str, An
     findings: list[Finding] = []
     summary: dict[str, Any] = {"has_esp": False, "ike_versions": []}
     seen_fields: set[tuple[str, str]] = set()
+    ikev2_initiators: dict[bytes, tuple[str, str]] = {}
     with PcapReader(str(pcap_path)) as reader:
         for packet in reader:
             if IP in packet and packet[IP].proto == 50:
@@ -206,6 +207,9 @@ def extract_findings(pcap_path: str | Path) -> tuple[list[Finding], dict[str, An
                 and exchange_type == IKEV2_SA_INIT
                 and next_payload == SA_PAYLOAD
             ):
+                initiator_spi = payload[:8]
+                if initiator_spi not in ikev2_initiators:
+                    ikev2_initiators[initiator_spi] = (packet[IP].src, packet[IP].dst)
                 for proposal in _parse_ikev2_transforms(payload[28:]):
                     for source_field, raw_value in proposal.items():
                         key = (source_field, raw_value)
@@ -223,7 +227,8 @@ def extract_findings(pcap_path: str | Path) -> tuple[list[Finding], dict[str, An
                 if (
                     packet[UDP].sport == 500
                     and packet[UDP].dport == 500
-                    and packet[IP].src.endswith(".2")
+                    and ikev2_initiators.get(initiator_spi) != (packet[IP].src, packet[IP].dst)
+                    and ("ikev2.sa_payload", "responder_sa_init_seen") not in seen_fields
                 ):
                     findings.append(
                         Finding(
@@ -239,6 +244,7 @@ def extract_findings(pcap_path: str | Path) -> tuple[list[Finding], dict[str, An
                             impact="low",
                         )
                     )
+                    seen_fields.add(("ikev2.sa_payload", "responder_sa_init_seen"))
             elif version.startswith("1"):
                 if exchange_type == IKEV1_AGGRESSIVE_MODE:
                     findings.append(

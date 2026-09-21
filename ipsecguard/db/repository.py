@@ -20,7 +20,7 @@ class AnalysisRecord(Base):
     __tablename__ = "analysis_results"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    kind: Mapped[str] = mapped_column(String(32))
+    kind: Mapped[str] = mapped_column(String(32), primary_key=True)
     path: Mapped[str] = mapped_column(Text())
     payload_json: Mapped[str] = mapped_column(Text())
     created_at: Mapped[datetime] = mapped_column(
@@ -33,10 +33,19 @@ class AnalysisRepository:
         Base.metadata.create_all(engine)
 
     def save_report(self, report_id: str, kind: str, path: str, payload: dict) -> None:
+        self.save_reports([(report_id, kind, path, payload)])
+
+    def save_reports(self, reports: list[tuple[str, str, str, dict]]) -> None:
         with Session(engine) as session:
-            session.add(
-                AnalysisRecord(id=report_id, kind=kind, path=path, payload_json=json.dumps(payload))
-            )
+            for report_id, kind, path, payload in reports:
+                session.merge(
+                    AnalysisRecord(
+                        id=report_id,
+                        kind=kind,
+                        path=path,
+                        payload_json=json.dumps(payload),
+                    )
+                )
             session.commit()
 
     def get_report(self, report_id: str, kind: str) -> AnalysisRecord | None:

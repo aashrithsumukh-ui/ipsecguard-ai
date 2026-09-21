@@ -31,12 +31,13 @@
       <div class="card">
         <input id="pcap" type="file" accept=".pcap">
         <button id="analyze">Analyze</button>
+        <p id="error" style="color:#b91c1c;"></p>
       </div>
       <div id="results" hidden>
         <div class="card">
           <div class="gauge" id="score"></div>
           <div id="subscores"></div>
-          <p><a id="executive" target="_blank">Download executive report</a> | <a id="technical" target="_blank">Download technical report</a></p>
+          <p><a id="executive" target="_blank" rel="noopener noreferrer">Download executive report</a> | <a id="technical" target="_blank" rel="noopener noreferrer">Download technical report</a></p>
         </div>
         <div class="card">
           <h2>Threat matrix</h2>
@@ -53,27 +54,76 @@
     </main>
     <script>
       const matrixKeys = ["high_high", "high_medium", "high_low", "medium_high", "medium_medium", "medium_low", "low_high", "low_medium", "low_low"];
+      const setText = (element, value) => { element.textContent = value; };
       document.getElementById('analyze').addEventListener('click', async () => {
         const input = document.getElementById('pcap');
+        const error = document.getElementById('error');
+        setText(error, '');
         if (!input.files.length) return;
         const form = new FormData();
         form.append('file', input.files[0]);
         const response = await fetch('/analyze', { method: 'POST', body: form });
+        if (!response.ok) {
+          const detail = await response.json();
+          document.getElementById('results').hidden = true;
+          setText(error, detail.detail || 'Analysis failed.');
+          return;
+        }
         const data = await response.json();
         document.getElementById('results').hidden = false;
-        document.getElementById('score').textContent = `${data.score}/100`;
-        document.getElementById('subscores').innerHTML = Object.entries(data.subscores).map(([key, value]) => `<div>${key}: ${value}</div>`).join('');
+        setText(document.getElementById('score'), `${data.score}/100`);
+        const subscores = document.getElementById('subscores');
+        subscores.replaceChildren();
+        Object.entries(data.subscores).forEach(([key, value]) => {
+          const item = document.createElement('div');
+          setText(item, `${key}: ${value}`);
+          subscores.appendChild(item);
+        });
         document.getElementById('executive').href = `/reports/${data.report_ids.executive}/executive`;
         document.getElementById('technical').href = `/reports/${data.report_ids.technical}/technical`;
-        document.getElementById('findings').innerHTML = data.findings.map((finding) => `
-          <tr>
-            <td>${finding.title}</td>
-            <td>${finding.severity}</td>
-            <td><span class="${finding.derivation}">${finding.derivation}</span></td>
-            <td>${finding.raw_value ?? ''}</td>
-            <td>${finding.confidence_pct ?? 'n/a'}</td>
-          </tr>`).join('');
-        document.getElementById('matrix').innerHTML = matrixKeys.map((key) => `<div class="cell"><strong>${key}</strong><br>${(data.threat_matrix[key] || []).length} finding(s)</div>`).join('');
+        const findingsTable = document.getElementById('findings');
+        findingsTable.replaceChildren();
+        data.findings.forEach((finding) => {
+          const row = document.createElement('tr');
+          const titleCell = document.createElement('td');
+          setText(titleCell, finding.title);
+          row.appendChild(titleCell);
+
+          const severityCell = document.createElement('td');
+          setText(severityCell, finding.severity);
+          row.appendChild(severityCell);
+
+          const derivationCell = document.createElement('td');
+          const badge = document.createElement('span');
+          badge.className = finding.derivation;
+          setText(badge, finding.derivation);
+          derivationCell.appendChild(badge);
+          row.appendChild(derivationCell);
+
+          const valueCell = document.createElement('td');
+          setText(valueCell, String(finding.raw_value ?? ''));
+          row.appendChild(valueCell);
+
+          const confidenceCell = document.createElement('td');
+          setText(confidenceCell, String(finding.confidence_pct ?? 'n/a'));
+          row.appendChild(confidenceCell);
+
+          findingsTable.appendChild(row);
+        });
+        const matrix = document.getElementById('matrix');
+        matrix.replaceChildren();
+        matrixKeys.forEach((key) => {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          const title = document.createElement('strong');
+          setText(title, key);
+          const count = document.createElement('div');
+          setText(count, `${(data.threat_matrix[key] || []).length} finding(s)`);
+          cell.appendChild(title);
+          cell.appendChild(document.createElement('br'));
+          cell.appendChild(count);
+          matrix.appendChild(cell);
+        });
       });
     </script>
   </body>

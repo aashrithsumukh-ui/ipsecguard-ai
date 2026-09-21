@@ -18,12 +18,24 @@ CONFUSION_PATH = MODELS_DIR / "confusion_matrix.png"
 LABELS_PATH = MODELS_DIR / "traffic_labels.json"
 
 
-def train_classifier(dataset: pd.DataFrame) -> dict:
+def build_split_indices(dataset: pd.DataFrame) -> tuple[list[int], list[int]]:
     feature_frame = dataset[FEATURE_COLUMNS]
     labels = dataset["traffic_label"]
     groups = dataset["config_group"]
     splitter = GroupShuffleSplit(n_splits=1, test_size=0.3, random_state=42)
     train_idx, test_idx = next(splitter.split(feature_frame, labels, groups=groups))
+    return train_idx.tolist(), test_idx.tolist()
+
+
+def train_classifier(
+    dataset: pd.DataFrame,
+    train_idx: list[int] | None = None,
+    test_idx: list[int] | None = None,
+) -> dict:
+    feature_frame = dataset[FEATURE_COLUMNS]
+    labels = dataset["traffic_label"]
+    if train_idx is None or test_idx is None:
+        train_idx, test_idx = build_split_indices(dataset)
     X_train = feature_frame.iloc[train_idx]
     X_test = feature_frame.iloc[test_idx]
     y_train = labels.iloc[train_idx]
