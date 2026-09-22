@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>IPsecGuard AI</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background: #f3f4f6; color: #111827; }
+      main { max-width: 960px; margin: 0 auto; padding: 2rem; }
+      .card { background: white; border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1rem; }
+      .legend span { display: inline-block; padding: 0.25rem 0.6rem; border-radius: 999px; margin-right: 0.5rem; }
+      .observed { background: #dbeafe; color: #1d4ed8; }
+      .inferred { background: #fef3c7; color: #b45309; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { padding: 0.5rem; border-bottom: 1px solid #e5e7eb; text-align: left; }
+      .gauge { font-size: 3rem; font-weight: bold; }
+      button { background: #2563eb; color: white; border: 0; padding: 0.75rem 1rem; border-radius: 0.75rem; cursor: pointer; }
+      .matrix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+      .cell { background: #e5e7eb; border-radius: 0.75rem; padding: 0.75rem; min-height: 5rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="card">
+        <h1>IPsecGuard AI</h1>
+        <p>Upload an IPsec pcap to get a score, threat matrix, and derivation-tagged findings without decrypting payloads.</p>
+        <div class="legend">
+          <span class="observed">Observed = plaintext IKE fields</span>
+          <span class="inferred">Inferred = metadata/ML heuristics</span>
+        </div>
+      </div>
+      <div class="card">
+        <input id="pcap" type="file" accept=".pcap">
+        <button id="analyze">Analyze</button>
+        <p id="error" style="color:#b91c1c;"></p>
+      </div>
+      <div id="results" hidden>
+        <div class="card">
+          <div class="gauge" id="score"></div>
+          <div id="subscores"></div>
+          <p><a id="executive" target="_blank" rel="noopener noreferrer">Download executive report</a> | <a id="technical" target="_blank" rel="noopener noreferrer">Download technical report</a></p>
+        </div>
+        <div class="card">
+          <h2>Threat matrix</h2>
+          <div class="matrix" id="matrix"></div>
+        </div>
+        <div class="card">
+          <h2>Findings</h2>
+          <table>
+            <thead><tr><th>Finding</th><th>Severity</th><th>Derivation</th><th>Value</th><th>Confidence</th></tr></thead>
+            <tbody id="findings"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+    <script>
+      const matrixKeys = ["high_high", "high_medium", "high_low", "medium_high", "medium_medium", "medium_low", "low_high", "low_medium", "low_low"];
+      const setText = (element, value) => { element.textContent = value; };
+      document.getElementById('analyze').addEventListener('click', async () => {
+        const input = document.getElementById('pcap');
+        const error = document.getElementById('error');
+        setText(error, '');
+        if (!input.files.length) return;
+        const form = new FormData();
+        form.append('file', input.files[0]);
+        const response = await fetch('/analyze', { method: 'POST', body: form });
+        if (!response.ok) {
+          const detail = await response.json();
+          document.getElementById('results').hidden = true;
+          setText(error, detail.detail || 'Analysis failed.');
+          return;
+        }
+        const data = await response.json();
+        document.getElementById('results').hidden = false;
+        setText(document.getElementById('score'), `${data.score}/100`);
+        const subscores = document.getElementById('subscores');
+        subscores.replaceChildren();
+        Object.entries(data.subscores).forEach(([key, value]) => {
+          const item = document.createElement('div');
+          setText(item, `${key}: ${value}`);
+          subscores.appendChild(item);
+        });
+        document.getElementById('executive').href = `/reports/${data.report_ids.executive}/executive`;
+        document.getElementById('technical').href = `/reports/${data.report_ids.technical}/technical`;
+        const findingsTable = document.getElementById('findings');
+        findingsTable.replaceChildren();
+        data.findings.forEach((finding) => {
+          const row = document.createElement('tr');
+          const titleCell = document.createElement('td');
+          setText(titleCell, finding.title);
+          row.appendChild(titleCell);
+
+          const severityCell = document.createElement('td');
+          setText(severityCell, finding.severity);
+          row.appendChild(severityCell);
+
+          const derivationCell = document.createElement('td');
+          const badge = document.createElement('span');
+          badge.className = finding.derivation;
+          setText(badge, finding.derivation);
+          derivationCell.appendChild(badge);
+          row.appendChild(derivationCell);
+
+          const valueCell = document.createElement('td');
+          setText(valueCell, String(finding.raw_value ?? ''));
+          row.appendChild(valueCell);
+
+          const confidenceCell = document.createElement('td');
+          setText(confidenceCell, String(finding.confidence_pct ?? 'n/a'));
+          row.appendChild(confidenceCell);
+
+          findingsTable.appendChild(row);
+        });
+        const matrix = document.getElementById('matrix');
+        matrix.replaceChildren();
+        matrixKeys.forEach((key) => {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          const title = document.createElement('strong');
+          setText(title, key);
+          const count = document.createElement('div');
+          setText(count, `${(data.threat_matrix[key] || []).length} finding(s)`);
+          cell.appendChild(title);
+          cell.appendChild(document.createElement('br'));
+          cell.appendChild(count);
+          matrix.appendChild(cell);
+        });
+      });
+    </script>
+  </body>
+</html>

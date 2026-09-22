@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>IPsecGuard AI Technical Report</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 2rem; color: #1f2937; }
+      table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+      th, td { border: 1px solid #d1d5db; padding: 0.5rem; text-align: left; }
+      .observed { color: #1d4ed8; font-weight: bold; }
+      .inferred { color: #b45309; font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <h1>Technical Assessment</h1>
+    <p>Findings are tagged by derivation to preserve the IKE plaintext/encrypted boundary.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Severity</th>
+          <th>Derivation</th>
+          <th>Value</th>
+          <th>Confidence</th>
+          <th>Citation</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for finding in findings %}
+        <tr>
+          <td>{{ finding.title }}</td>
+          <td>{{ finding.severity }}</td>
+          <td class="{{ finding.derivation }}">{{ finding.derivation }}</td>
+          <td>{{ finding.raw_value }}</td>
+          <td>{{ finding.confidence_pct if finding.confidence_pct is defined else 'n/a' }}</td>
+          <td>{{ finding.citation }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <h2>Threat matrix cells</h2>
+    <ul>
+      {% for key, entries in result.threat_matrix.items() %}
+      <li>{{ key }}: {{ entries|length }} finding(s)</li>
+      {% endfor %}
+    </ul>
+    <h2>Session summary</h2>
+    <pre>{{ session_summary }}</pre>
+  </body>
+</html>
